@@ -39,13 +39,20 @@ def loop():
     optimizer = tf.train.AdamOptimizer(learning_rate=0.01, epsilon=0.1)
     optimization_op = optimizer.minimize(loss=loss)
 
+    # Define summarization nodes
+    summary_collection = 'single_collection'
+    summary_loss = tf.summary.scalar('loss', tensor=loss, collections=(summary_collection))
+
     # Define what nodes of the graph we want to compute
-    tensors_to_fetch = [output, optimization_op]
+    tensors_to_fetch = [output, optimization_op, summary_loss]  # What could be optimized here?  # TODO
     fetches = dict([(n.name, n) for n in tensors_to_fetch])
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(iterator.initializer, feed_dict=feed_dict)
+
+        # Instantiate file writer
+        file_writer = tf.summary.FileWriter(logdir=destination_dirpath)  # Important:  # TODO
 
         for step in range(1000):
             print('Step {}'.format(step))
@@ -67,6 +74,10 @@ def loop():
                     filename = "{}-{}.png".format(step, i)
                     output_img = cv2.cvtColor(batch_output_images[i], cv2.COLOR_RGB2BGR)
                     cv2.imwrite(os.path.join(destination_dirpath, filename), output_img)
+
+                file_writer.add_summary(summary=evaluated_tensors[summary_loss.name],
+                                        global_step=step)
+                file_writer.flush()
 
             if step > 50:
                 print('Finished.')
